@@ -1,0 +1,14 @@
+# Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python build artifacts
+*.egg-info/
+build/
+dist/
+.eggs/
+.venv/
+
+# gif generated outputs
+*.gif
