@@ -17,10 +17,10 @@ class GifPlotter:
         self.output_file = config.output_file
         self.fig, self.ax = plt.subplots(2, 1, gridspec_kw={"height_ratios": [3, 1]})
         self.dots1 = self.ax[0].plot(
-            self.system.P[1][0], self.system.P[1][1], "o", color="blue"
+            self.system.state.P[1][0], self.system.state.P[1][1], "o", color="blue"
         )
         self.dots2 = self.ax[0].plot(
-            self.system.P[1][0], self.system.P[1][1], "o", color="red"
+            self.system.state.P[1][0], self.system.state.P[1][1], "o", color="red"
         )
         self.tempPlot = self.ax[1].plot([], [])
 
@@ -46,14 +46,14 @@ class GifPlotter:
             "$T=" + str(round(TEMP_CURVES[self.system.temp_curve](i), 1)) + "$"
         )
 
-        L = self.system.P.shape[2]
+        L = self.system.state.P.shape[2]
         self.dots1[0].set_data(
-            self.system.P[i, 0, : int(L / 2) + 10],
-            self.system.P[i, 1, : int(L / 2) + 10],
+            self.system.state.P[i, 0, : int(L / 2) + 10],
+            self.system.state.P[i, 1, : int(L / 2) + 10],
         )
         self.dots2[0].set_data(
-            self.system.P[i, 0, int(L / 2) + 10 :],
-            self.system.P[i, 1, int(L / 2) + 10 :],
+            self.system.state.P[i, 0, int(L / 2) + 10 :],
+            self.system.state.P[i, 1, int(L / 2) + 10 :],
         )
 
         time_elapsed = list(range(1, i + 1))
@@ -68,10 +68,10 @@ class GifPlotter:
         _, ax = plt.subplots(2, 1, gridspec_kw={"height_ratios": [3, 1]})
 
         self.dots1 = ax[0].plot(
-            self.system.P[1][0], self.system.P[1][1], "o", color="blue"
+            self.system.state.P[1][0], self.system.state.P[1][1], "o", color="blue"
         )
         self.dots2 = ax[0].plot(
-            self.system.P[1][0], self.system.P[1][1], "o", color="red"
+            self.system.state.P[1][0], self.system.state.P[1][1], "o", color="red"
         )
         self.tempPlot = ax[1].plot([], [])
 

@@ -9,7 +9,14 @@ class SimulationConfig:
     N: int = 20
     dt: float = 0.01
     T: int = 5000
-    temp_curve = "first_hot_then_cold"
+    temp_curve: str = "first_hot_then_cold"
+
+
+@dataclass
+class SimulatorState:
+    P: np.ndarray  # shape (T+1, 2, n_particles)
+    m: np.ndarray  # shape (n_particles,)
+    i: int = 1
 
 
 class Simulator:
@@ -18,56 +25,79 @@ class Simulator:
         self.N = config.N
         self.dt = config.dt
         self.T = config.T
-        self.i = 1
         self.temp_curve = config.temp_curve
-        # initial geometry of the system, in this case Triangular grid
+        self.state = self._build_initial_state()
 
+    def _build_initial_state(self) -> SimulatorState:
         X, Y = np.meshgrid(range(self.N), range(int(self.N * 2 / np.sqrt(3))))
-
-        X = np.reshape(X, X.size).astype(float)
-        Y = np.reshape(Y, Y.size).astype(float)
+        X = X.flatten().astype(float)
+        Y = Y.flatten().astype(float)
         offsets = (Y.astype(int) % 2) / 2
         X += offsets
         Y *= np.sqrt(3) / 2
 
-        # plt.scatter(X,Y)
-        # plt.show()
         P0 = np.array([X, Y])
-        self.m = P0[1] * 0 + 1
+        n_particles = P0.shape[1]
 
-        self.P = np.zeros((self.T, P0.shape[0], P0.shape[1]))
+        P = np.zeros((self.T + 1, 2, n_particles))
+        P[0] = P0
+        P[1] = P0
 
-        # initial conditions
-        self.P[0] = P0
-        self.P[1] = P0
+        return SimulatorState(P=P, m=np.ones(n_particles), i=1)
 
-    def contain(self):
-        self.P[0:2, :] = np.clip(self.P[0:2, :], -1, 20)
+    @staticmethod
+    def _contain_in_box(P_i: np.ndarray) -> np.ndarray:
+        return np.clip(P_i, -1, 20)
 
-    def distMat(self):
-        self.dP = np.array(
-            [
-                np.reshape(p, (len(p), 1)) - np.reshape(p, (1, len(p)))
-                for p in self.P[self.i]
-            ]
-        )
-        self.d = np.sum(self.dP**2, axis=0)
+    @staticmethod
+    def _get_dist_mat(P_i: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        dP = np.empty((2, P_i.shape[1], P_i.shape[1]))
+        for k in range(2):
+            p = P_i[k]
+            dP[k] = np.reshape(p, (len(p), 1)) - np.reshape(p, (1, len(p)))
+        d = np.sum(dP**2, axis=0)
+        return dP, d
 
-    def force(self):
-        self.d[np.diag_indices_from(self.d)] = (
-            1  # just to avoid divide by zero error message
-        )
-        self.f = [dp / self.d * F_LJ(self.d, r0=1) for dp in self.dP]
-        for F in self.f:  # No self interaction
-            # F +=np.random.normal(0,0.01,size=F.size)
+    @staticmethod
+    def _get_force(dP: np.ndarray, d: np.ndarray) -> np.ndarray:
+        n = d.shape[0]
+        d_safe = d + np.eye(n)  # diagonal is always 0 (self-distance); +1 there avoids div-by-zero
 
-            F[np.diag_indices_from(F)] = 0
+        f = dP / d_safe * F_LJ(d_safe, r0=1)
 
-    def update(self, i):
-        self.i = i
-        self.distMat()
-        self.force()
-        self.contain()
-        a = self.f @ self.m
+        idx = np.arange(n)
+        f[:, idx, idx] = 0  # no self-interaction
+        return f
+
+    def _get_new_state(self, i: int) -> SimulatorState:
+        P_i = self._contain_in_box(self.state.P[i])
+        self.state.P[i] = P_i
+
+        dP, d = self._get_dist_mat(P_i)
+        f = self._get_force(dP, d)
+
+        a = f @ self.state.m
         a += np.random.normal(0, TEMP_CURVES[self.temp_curve](t=i), size=a.shape)
-        self.P[i + 1] = self.P[i] * 2 - self.P[i - 1] + self.dt**2 * a
+
+        self.state.P[i + 1] = 2 * P_i - self.state.P[i - 1] + self.dt**2 * a
+        return self.state
+
+    def update(self, i: int):
+        self.state.i = i
+        self.state = self._get_new_state(i)
+
+        # P_i = self._contain_in_box(self.state.P[i])
+        # self.state.P[i] = P_i
+
+        # dP, d = self._get_dist_mat(P_i)
+        # f = self._get_force(dP, d)
+
+        # a = f @ self.state.m
+        # a += np.random.normal(0, TEMP_CURVES[self.temp_curve](t=i), size=a.shape)
+
+        # self.state.P[i + 1] = 2 * P_i - self.state.P[i - 1] + self.dt**2 * a
+
+    def run(self):
+        for i in range(1, self.T):
+            self.update(i)
+        return self.state.P

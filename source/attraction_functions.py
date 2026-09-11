@@ -1,3 +1,7 @@
+import numba
+
+
+@numba.jit(nopython=True, parallel=True)
 def F_LJ(r, r0, epsilon=1):  # Lennard Jones potential
     sigma = 0.5 ** (1 / 6) * r0
     s_over_r = sigma / r
