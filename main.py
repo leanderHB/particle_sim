@@ -3,8 +3,10 @@ from source.gif_plotter import GifPlotter, GifPlotterConfig
 
 
 def main():
-    system = Simulator(SimulationConfig(T=500))
-    plotter = GifPlotter(GifPlotterConfig(system=system, output_file="output.gif"))
+    system = Simulator(SimulationConfig(T=10000, dt=0.01))
+    plotter = GifPlotter(
+        GifPlotterConfig(system=system, output_file="output.gif", frame_interval=40)
+    )
     plotter.run()
 
 
