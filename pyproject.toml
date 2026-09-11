@@ -10,3 +10,4 @@ dependencies = [
     "numpy>=2.5.3",
     "scipy>=1.18.1",
 ]
+ruff = { "line-length" = 120 }
