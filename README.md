@@ -1,0 +1,1 @@
+This is an old project from 2023 that used to be in a jupyter notebook. I've thought of it often, so I wanted ot both make it more performant, and clean the project up. 
